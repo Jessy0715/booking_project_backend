@@ -31,3 +31,19 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Claude Code ###
+.claude/
+CLAUDE.md
+
+### 專案私有文件 ###
+docs/
+
+### Secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx

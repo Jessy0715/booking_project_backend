@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: booking-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-booking}
+      POSTGRES_USER: ${POSTGRES_USER:-booking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-booking}
+      TZ: Asia/Taipei
+    ports:
+      # 主機 5433 → 容器 5432
+      # 刻意不用 5432，避免跟本機其他 PostgreSQL 互搶
+      - "5433:5432"
+    volumes:
+      - booking-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking -d booking"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  booking-pgdata:
