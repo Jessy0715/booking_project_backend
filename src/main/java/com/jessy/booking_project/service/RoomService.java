@@ -6,6 +6,10 @@ import com.jessy.booking_project.exception.RoomNotFoundException;
 import com.jessy.booking_project.mapper.RoomMapper;
 import com.jessy.booking_project.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,5 +26,26 @@ public class RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(RoomNotFoundException::new);
         return roomMapper.toResponse(room);
+    }
+
+    /**
+     * @param page 從 1 開始（契約的規則，不是 Spring 的）
+     *             @Transactional 包成一個交易，要嘛全成功、要嘛全失敗，跟 Hibernate 宣告「我只讀不寫」
+     */
+    @Transactional(readOnly = true)
+    public Page<RoomResponse> search(String keyword, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(toZeroBased(page), pageSize, Sort.by("id"));
+
+        // keyword 沒給時用空字串：LIKE '%%' 匹配全部，省掉 if/else 兩條分支
+        Page<Room> rooms = roomRepository.findByTitleContainingIgnoreCase(
+                keyword == null ? "" : keyword.trim(), pageable);
+
+        // map 只換掉每一筆的型別，頁碼與總筆數原封不動帶著走
+        return rooms.map(roomMapper::toResponse);
+    }
+
+    /** 契約的 page 從 1 開始，Spring Data 的 PageRequest 從 0 開始。 */
+    private int toZeroBased(int page) {
+        return Math.max(page, 1) - 1;
     }
 }
