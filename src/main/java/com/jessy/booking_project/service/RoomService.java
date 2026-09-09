@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RoomService {
 
+    /** 單頁筆數上限，擋掉 ?pageSize=999999 一次撈全表。 */
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final RoomRepository roomRepository;
     private final RoomMapper roomMapper;
 
@@ -29,12 +32,16 @@ public class RoomService {
     }
 
     /**
+     * 依關鍵字分頁查詢場地。
+     *
+     * <p>{@code @Transactional} 把方法內的資料庫操作包成一個交易，要嘛全成功、要嘛全失敗；
+     * {@code readOnly = true} 再向 Hibernate 宣告「我只讀不寫」，可跳過髒檢查。
+     *
      * @param page 從 1 開始（契約的規則，不是 Spring 的）
-     *             @Transactional 包成一個交易，要嘛全成功、要嘛全失敗，跟 Hibernate 宣告「我只讀不寫」
      */
     @Transactional(readOnly = true)
     public Page<RoomResponse> search(String keyword, int page, int pageSize) {
-        Pageable pageable = PageRequest.of(toZeroBased(page), pageSize, Sort.by("id"));
+        Pageable pageable = PageRequest.of(toZeroBased(page), toSafePageSize(pageSize), Sort.by("id"));
 
         // keyword 沒給時用空字串：LIKE '%%' 匹配全部，省掉 if/else 兩條分支
         Page<Room> rooms = roomRepository.findByTitleContainingIgnoreCase(
@@ -47,5 +54,10 @@ public class RoomService {
     /** 契約的 page 從 1 開始，Spring Data 的 PageRequest 從 0 開始。 */
     private int toZeroBased(int page) {
         return Math.max(page, 1) - 1;
+    }
+
+    /** pageSize 夾在 1..MAX_PAGE_SIZE。0 會讓 PageRequest 直接丟例外，太大則是 DoS 風險。 */
+    private int toSafePageSize(int pageSize) {
+        return Math.clamp(pageSize, 1, MAX_PAGE_SIZE);
     }
 }
