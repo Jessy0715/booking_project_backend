@@ -1,5 +1,6 @@
 package com.jessy.booking_project.service;
 
+import com.jessy.booking_project.dto.request.RoomCreateRequest;
 import com.jessy.booking_project.dto.response.RoomResponse;
 import com.jessy.booking_project.entity.Room;
 import com.jessy.booking_project.exception.RoomNotFoundException;
@@ -49,6 +50,35 @@ public class RoomService {
 
         // map 只換掉每一筆的型別，頁碼與總筆數原封不動帶著走
         return rooms.map(roomMapper::toResponse);
+    }
+
+    /** 建立場地。@Transactional 不加 readOnly —— 這裡要寫入。 */
+    @Transactional
+    public RoomResponse create(RoomCreateRequest request) {
+        Room room = roomMapper.toEntity(request);
+        Room saved = roomRepository.save(room);
+        return roomMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public RoomResponse update(Long id, RoomCreateRequest request) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(RoomNotFoundException::new);
+
+        // 不用呼叫 save()：交易內撈出的 Entity 受 Hibernate 管理，
+        // 方法結束時它會自己比對有沒有被改過並發 UPDATE（髒檢查）。
+        roomMapper.applyRequest(room, request);
+
+        return roomMapper.toResponse(room);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        // existsById 只查一個 boolean，比 findById 搬回整筆資料輕。
+        if (!roomRepository.existsById(id)) {
+            throw new RoomNotFoundException();
+        }
+        roomRepository.deleteById(id);
     }
 
     /** 契約的 page 從 1 開始，Spring Data 的 PageRequest 從 0 開始。 */

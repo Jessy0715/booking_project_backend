@@ -31,4 +31,9 @@ public record ApiResponse<T>(
     public static <T> ApiResponse<T> fail(String message) {
         return new ApiResponse<>(false, null, null, message);
     }
+
+    /** {"success":true,"message":"場地已刪除"} —— 成功但沒有資料可回。 */
+    public static ApiResponse<Void> okMessage(String message) {
+        return new ApiResponse<>(true, null, null, message);
+    }
 }
