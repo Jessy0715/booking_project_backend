@@ -16,6 +16,7 @@ public enum BookingStatus {
         return value;
     }
 
+//    字串轉為 enum 物件
     public static BookingStatus fromValue(String value) {
         for (BookingStatus status : values()) {
             if (status.value.equalsIgnoreCase(value)) {

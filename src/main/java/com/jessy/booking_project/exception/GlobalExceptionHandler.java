@@ -3,6 +3,8 @@ package com.jessy.booking_project.exception;
 import com.jessy.booking_project.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -28,6 +30,37 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    /** 預約時段衝突 → 409。 */
+    @ExceptionHandler(BookingConflictException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBookingConflict(BookingConflictException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    /** 預約狀態不允許此操作 → 400。 */
+    @ExceptionHandler(BookingStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBookingState(BookingStateException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+    }
+
+    /**
+     * 撞到資料庫唯一索引 → 409。
+     *
+     * <p>這是併發的最後防線：兩個請求同時通過 Service 的檢查，只有一個能 INSERT 成功，
+     * 另一個在這裡被接住。此時分不出對方是 pending 還是 approved，用通用訊息。
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
+        log.warn("資料完整性衝突：{}", e.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail(BookingConflictException.PENDING_MESSAGE));
+    }
+
+    /** Service 內丟的 AccessDeniedException（本人檢查）→ 403。Filter 層的 403 走 RestAccessDeniedHandler。 */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));
     }
 
     /** 帳密錯誤 → 401。 */

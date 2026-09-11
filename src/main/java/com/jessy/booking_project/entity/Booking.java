@@ -40,6 +40,7 @@ public class Booking {
     /**
      * LAZY：撈 Booking 時不會順便撈 Room，要用到 getRoom() 才查。
      * 這正是 N+1 的來源 —— 10 筆預約各自去查一次 Room。
+     * 一間 Room 有多筆 Booking
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
