@@ -25,8 +25,11 @@ public class RoomController {
     private final RoomService roomService;
     private final BookingService bookingService;
 
+/*
+* 統一原則為[Controller動詞+名詞、Service用同一動詞】
+* */
     @GetMapping
-    public ApiResponse<List<RoomResponse>> listRooms(
+    public ApiResponse<List<RoomResponse>> searchRooms(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int pageSize) {
@@ -59,7 +62,7 @@ public class RoomController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<RoomResponse> reviseRoom( @PathVariable Long id, @Valid @RequestBody RoomCreateRequest request) {
+    public ApiResponse<RoomResponse> updateRoom( @PathVariable Long id, @Valid @RequestBody RoomCreateRequest request) {
         return ApiResponse.ok(roomService.update(id, request));
     }
 

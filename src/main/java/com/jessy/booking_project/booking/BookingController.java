@@ -31,7 +31,7 @@ public class BookingController {
 
     /** status 直接收 enum：EnumConverterConfig 負責 "pending" → PENDING，錯值自動 400。 */
     @GetMapping
-    public ApiResponse<List<BookingResponse>> listBookings(
+    public ApiResponse<List<BookingResponse>> searchBookings(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long roomId) {
