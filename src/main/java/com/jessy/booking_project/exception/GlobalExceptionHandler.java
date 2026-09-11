@@ -30,6 +30,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
     }
 
+    /** 帳密錯誤 → 401。 */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidCredentials(InvalidCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
+    }
+
+    /** 帳號重複 → 409。 */
+    @ExceptionHandler(DuplicateAccountException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateAccount(DuplicateAccountException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.fail(e.getMessage()));
+    }
+
     /** Bean Validation 失敗 → 400。取第一個欄位錯誤當訊息，契約要的是單一句中文。 */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {

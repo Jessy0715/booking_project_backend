@@ -1,7 +1,10 @@
 package com.jessy.booking_project.config;
 
 import com.jessy.booking_project.entity.Room;
+import com.jessy.booking_project.entity.User;
 import com.jessy.booking_project.repository.RoomRepository;
+import com.jessy.booking_project.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -24,14 +27,34 @@ import java.util.List;
 public class DataInitializer implements CommandLineRunner {
 
     private final RoomRepository roomRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        seedRoomsIfEmpty();
+        seedAdminIfMissing();
+    }
+
+    private void seedRoomsIfEmpty() {
         if (roomRepository.count() > 0) {
             return;
         }
         roomRepository.saveAll(seedRooms());
         log.info("種子資料已建立：{} 間場地", roomRepository.count());
+    }
+
+    /** 種子管理員。密碼用 BCrypt 存，資料庫裡看不到明文。 */
+    private void seedAdminIfMissing() {
+        if (userRepository.existsByAccount("admin")) {
+            return;
+        }
+        userRepository.save(User.builder()
+                .account("admin")
+                .password(passwordEncoder.encode("admin1234"))
+                .role(User.ROLE_ADMIN)
+                .build());
+        log.info("種子管理員已建立：admin");
     }
 
     private List<Room> seedRooms() {
