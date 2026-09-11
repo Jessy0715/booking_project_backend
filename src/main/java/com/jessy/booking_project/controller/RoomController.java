@@ -4,13 +4,17 @@ import com.jessy.booking_project.dto.request.RoomCreateRequest;
 import com.jessy.booking_project.dto.response.ApiResponse;
 import com.jessy.booking_project.dto.response.PaginationResponse;
 import com.jessy.booking_project.dto.response.RoomResponse;
+import com.jessy.booking_project.dto.response.SlotAvailabilityResponse;
+import com.jessy.booking_project.service.BookingService;
 import com.jessy.booking_project.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /** 場地端點。只管 HTTP：路徑、參數、回應包裝。狀態碼與錯誤交給 GlobalExceptionHandler。 */
@@ -20,6 +24,7 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+    private final BookingService bookingService;
 
     @GetMapping
     public ApiResponse<List<RoomResponse>> listRooms(
@@ -34,6 +39,17 @@ public class RoomController {
     @GetMapping("/{id}")
     public ApiResponse<RoomResponse> getRoom(@PathVariable Long id) {
         return ApiResponse.ok(roomService.getById(id));
+    }
+
+    /**
+     * 路徑屬於 rooms，資料來自 bookings —— 所以掛在這裡但呼叫 BookingService。
+     * date 沒帶 → MissingServletRequestParameterException → 400「date 為必填」。
+     */
+    @GetMapping("/{id}/slots")
+    public ApiResponse<SlotAvailabilityResponse> getSlots(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ApiResponse.ok(bookingService.getSlotAvailability(id, date));
     }
 
     /** 契約要 201 Created。@ResponseStatus 比包一層 ResponseEntity 乾淨。 */

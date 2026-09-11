@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -84,6 +85,12 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse("參數錯誤");
         return ResponseEntity.badRequest().body(ApiResponse.fail(message));
+    }
+
+    /** 必填的 query param 沒帶（例如 slots 少了 date）→ 400。訊息格式對齊契約「date 為必填」。 */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParam(MissingServletRequestParameterException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getParameterName() + " 為必填"));
     }
 
     /** 路徑或查詢參數型別錯（例如 /api/rooms/abc）→ 400。是呼叫端的錯，不該回 500。 */

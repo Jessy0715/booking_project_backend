@@ -3,6 +3,7 @@ package com.jessy.booking_project.service;
 import com.jessy.booking_project.dto.request.BookingCreateRequest;
 import com.jessy.booking_project.dto.request.BookingReviewRequest;
 import com.jessy.booking_project.dto.response.BookingResponse;
+import com.jessy.booking_project.dto.response.SlotAvailabilityResponse;
 import com.jessy.booking_project.entity.Booking;
 import com.jessy.booking_project.entity.BookingStatus;
 import com.jessy.booking_project.entity.Room;
@@ -19,6 +20,8 @@ import com.jessy.booking_project.repository.RoomRepository;
 import com.jessy.booking_project.security.AuthPrincipal;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDate;
+
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -26,10 +29,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BookingService {
+
+    /** 「佔用時段」的狀態。rejected 不算，被退回後別人還能約。 */
+    private static final List<BookingStatus> ACTIVE_STATUSES =
+            List.of(BookingStatus.PENDING, BookingStatus.APPROVED);
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
@@ -56,6 +65,36 @@ public class BookingService {
         return bookingMapper.toResponse(booking);
     }
 
+    /**
+     * 某棚某天三個時段各自的狀態。
+     *
+     * <p>這個回應沒有對應的 Entity，所以不走 Mapper —— 它是「算」出來的，不是「轉」出來的。
+     */
+    @Transactional(readOnly = true)
+    public SlotAvailabilityResponse getSlotAvailability(Long roomId, LocalDate date) {
+        if (!roomRepository.existsById(roomId)) {
+            throw new RoomNotFoundException();
+        }
+
+        // 一次查完這天所有有效預約，再依時段分組。舊版是三個時段各查一次。
+        // 唯一索引保證同一時段最多一筆有效預約，所以 key 不會重複；merge 只是保險。
+        Map<TimeSlot, BookingStatus> taken = bookingRepository
+                .findByRoom_IdAndBookingDateAndStatusIn(roomId, date, ACTIVE_STATUSES)
+                .stream()
+                .collect(Collectors.toMap(Booking::getTimeSlot, Booking::getStatus, (a, b) -> a));
+
+        return new SlotAvailabilityResponse(
+                statusOf(taken, TimeSlot.MORNING),
+                statusOf(taken, TimeSlot.AFTERNOON),
+                statusOf(taken, TimeSlot.NIGHT));
+    }
+
+    /** 該時段有預約 → 回它的狀態（pending / approved）；沒有 → available。 */
+    private String statusOf(Map<TimeSlot, BookingStatus> taken, TimeSlot slot) {
+        BookingStatus status = taken.get(slot);
+        return status == null ? SlotAvailabilityResponse.AVAILABLE : status.value();
+    }
+
     @Transactional
     public BookingResponse create(BookingCreateRequest request, AuthPrincipal me) {
         Room room = roomRepository.findById(request.roomId())
@@ -64,8 +103,7 @@ public class BookingService {
 
         // 衝突檢查：同棚 + 同天 + 同時段，只要有 pending 或 approved 就不能再訂
         bookingRepository.findFirstByRoom_IdAndBookingDateAndTimeSlotAndStatusIn(
-                        room.getId(), request.date(), slot,
-                        List.of(BookingStatus.PENDING, BookingStatus.APPROVED))
+                        room.getId(), request.date(), slot, ACTIVE_STATUSES)
                 .ifPresent(existing -> {
                     // 依對方的狀態回不同訊息（契約規定兩句不同的中文）
                     String message = existing.getStatus() == BookingStatus.APPROVED
