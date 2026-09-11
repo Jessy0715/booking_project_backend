@@ -1,7 +1,11 @@
 package com.jessy.booking_project.config;
 
+import com.jessy.booking_project.entity.Booking;
+import com.jessy.booking_project.entity.BookingStatus;
 import com.jessy.booking_project.entity.Room;
+import com.jessy.booking_project.entity.TimeSlot;
 import com.jessy.booking_project.entity.User;
+import com.jessy.booking_project.repository.BookingRepository;
 import com.jessy.booking_project.repository.RoomRepository;
 import com.jessy.booking_project.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -28,12 +33,42 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         seedRoomsIfEmpty();
         seedAdminIfMissing();
+        seedBookingsIfEmpty();
+    }
+
+    /** 10 筆預約分散在不同棚，讓查列表時的 N+1 一眼看得出來。 */
+    private void seedBookingsIfEmpty() {
+        if (bookingRepository.count() > 0) {
+            return;
+        }
+        List<Room> rooms = roomRepository.findAll();
+        if (rooms.isEmpty()) {
+            return;
+        }
+        LocalDate base = LocalDate.now().plusDays(1);
+        TimeSlot[] slots = TimeSlot.values();
+        BookingStatus[] statuses = {BookingStatus.PENDING, BookingStatus.APPROVED, BookingStatus.REJECTED};
+        String[] names = {"王小明", "李小華", "張大同"};
+
+        for (int i = 0; i < 10; i++) {
+            bookingRepository.save(Booking.builder()
+                    .room(rooms.get(i % rooms.size()))
+                    .userId((long) (i % 3 + 1))
+                    .userName(names[i % names.length])
+                    .bookingDate(base.plusDays(i))
+                    .timeSlot(slots[i % slots.length])
+                    .reason("測試預約 " + (i + 1))
+                    .status(statuses[i % statuses.length])
+                    .build());
+        }
+        log.info("種子預約已建立：{} 筆", bookingRepository.count());
     }
 
     private void seedRoomsIfEmpty() {

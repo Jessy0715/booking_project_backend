@@ -24,9 +24,9 @@ import java.util.Objects;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /** 找不到資源 → 404。訊息用例外自己帶的中文，前端會直接顯示。 */
-    @ExceptionHandler(RoomNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRoomNotFound(RoomNotFoundException e) {
+    /** 找不到資源 → 404。抓父類，Room / Booking / 未來的任何 NotFound 都走這裡。 */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(e.getMessage()));
     }
 
