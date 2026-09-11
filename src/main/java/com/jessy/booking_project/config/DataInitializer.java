@@ -1,17 +1,17 @@
 package com.jessy.booking_project.config;
 
-import com.jessy.booking_project.entity.Booking;
-import com.jessy.booking_project.entity.BookingStatus;
-import com.jessy.booking_project.entity.Room;
-import com.jessy.booking_project.entity.TimeSlot;
-import com.jessy.booking_project.entity.User;
-import com.jessy.booking_project.repository.BookingRepository;
-import com.jessy.booking_project.repository.RoomRepository;
-import com.jessy.booking_project.repository.UserRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.jessy.booking_project.auth.User;
+import com.jessy.booking_project.auth.UserRepository;
+import com.jessy.booking_project.booking.Booking;
+import com.jessy.booking_project.booking.BookingRepository;
+import com.jessy.booking_project.booking.BookingStatus;
+import com.jessy.booking_project.booking.TimeSlot;
+import com.jessy.booking_project.room.Room;
+import com.jessy.booking_project.room.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;

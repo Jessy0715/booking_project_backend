@@ -1,17 +1,16 @@
 package com.jessy.booking_project.security;
 
-import com.jessy.booking_project.entity.User;
+import com.jessy.booking_project.auth.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
-
-import io.jsonwebtoken.security.Keys;
 
 /**
  * 產生與解析 JWT。放在 security/ 而不是 service/ —— 它是安全基礎設施，沒有業務邏輯。
