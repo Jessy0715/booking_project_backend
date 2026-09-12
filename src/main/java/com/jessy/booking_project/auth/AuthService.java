@@ -6,13 +6,16 @@ import com.jessy.booking_project.auth.dto.RegisterRequest;
 import com.jessy.booking_project.auth.dto.UserResponse;
 import com.jessy.booking_project.common.BusinessException;
 import com.jessy.booking_project.common.ErrorCode;
+import com.jessy.booking_project.security.AuthPrincipal;
 import com.jessy.booking_project.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 註冊與登入。7b 會在這裡加 login。 */
+/** 註冊、登入、登出。 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -50,5 +53,13 @@ public class AuthService {
         String hashed = passwordEncoder.encode(request.password());
         User saved = userRepository.save(userMapper.toEntity(request, hashed));
         return userMapper.toResponse(saved);
+    }
+
+    /**
+     * 登出。JWT 無狀態，這裡不查、不改任何資料表 —— token 本身直到過期前都還「有效」，
+     * 只是前端已經把它丟掉不再送出。這支唯一實際做的事是留一筆稽核 log。
+     */
+    public void logout(AuthPrincipal me) {
+        log.info("使用者登出：account={}, uid={}", me.account(), me.uid());
     }
 }

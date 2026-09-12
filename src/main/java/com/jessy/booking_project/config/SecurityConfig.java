@@ -41,6 +41,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // 需登入：logout 語意上代表「你正處於登入狀態」，沒帶 token / token 過期直接 401。
+                        // 順序要排在下面的 /api/auth/** permitAll 之前 —— matcher 先符合先套用。
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                         // 公開：登入註冊本身不能要求登入，否則永遠進不來
                         .requestMatchers("/api/auth/**").permitAll()
                         // 公開：首頁、場地介紹頁、預約日曆都是未登入可看
