@@ -11,6 +11,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -60,6 +62,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException e) {
         log.debug("request body 解析失敗", e);
         return fail(ErrorCode.UNREADABLE_BODY);
+    }
+
+    /** 上傳的檔案超過 spring.servlet.multipart.max-file-size → 413。Spring 在進 Controller 前就丟。 */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge() {
+        return fail(ErrorCode.UPLOAD_TOO_LARGE);
+    }
+
+    /** multipart 請求裡沒有 file 這個欄位 → 400。 */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart() {
+        return fail(ErrorCode.UPLOAD_EMPTY);
     }
 
     /**

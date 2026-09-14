@@ -47,3 +47,6 @@ docs/
 *.key
 *.p12
 *.pfx
+
+# 本機上傳的圖片，不進版控
+uploads/

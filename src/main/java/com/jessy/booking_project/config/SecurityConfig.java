@@ -50,7 +50,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
                         // 公開：API 文件
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // 公開：上傳後的圖片，<img src> 不會帶 token
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 
+                        // 後台：上傳圖片（目前只有場地表單用得到）
+                        .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("ADMIN")
                         // 後台：場地的新增／修改／刪除
                         .requestMatchers(HttpMethod.POST, "/api/rooms").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")

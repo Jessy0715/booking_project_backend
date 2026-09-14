@@ -18,6 +18,11 @@ public enum ErrorCode {
     BOOKING_ALREADY_REVIEWED(HttpStatus.BAD_REQUEST, "此預約已審核完畢，無法再次變更"),
     BOOKING_NOT_PENDING(HttpStatus.BAD_REQUEST, "只能取消審核中 (pending) 的預約"),
     UNREADABLE_BODY(HttpStatus.BAD_REQUEST, "請求內容格式錯誤"),
+    UPLOAD_EMPTY(HttpStatus.BAD_REQUEST, "請選擇要上傳的圖片"),
+    UPLOAD_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "只支援 jpg / png / webp 格式的圖片"),
+
+    // 413
+    UPLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "圖片大小不能超過 5 MB"),
 
     // 401 / 403
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "帳號或密碼錯誤"),
@@ -29,6 +34,7 @@ public enum ErrorCode {
     BOOKING_SLOT_PENDING(HttpStatus.CONFLICT, "該時段已有人申請中，請選擇其他時間"),
 
     // 500
+    UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "圖片儲存失敗"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "伺服器內部錯誤");
 
     private final HttpStatus status;
