@@ -18,15 +18,23 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
-/** 預約。對應資料表 bookings。 
+/** 預約。對應資料表 bookings。
  * Builder 會產生全參的建構子，要靠 AllArgsConstructor 才能build
+ *
+ * <p>軟刪除：repository.delete() 不會發 DELETE，而是把 deleted_at 蓋上時間；
+ * 所有透過 Entity 的查詢（findById、Specification、衍生方法）自動加上 deleted_at IS NULL。
+ * Service 層完全不用知道這件事。
 */
 @Entity
 @Table(name = "bookings")
+@SQLDelete(sql = "UPDATE bookings SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -72,6 +80,10 @@ public class Booking {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /** null = 有效；有值 = 已取消（何時取消）。只由 @SQLDelete 寫入，程式碼不直接 set。 */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     // PrePersist 用法在於 Hibernate 在送出 INSERT 之前，會先呼叫這個方法。
     @PrePersist

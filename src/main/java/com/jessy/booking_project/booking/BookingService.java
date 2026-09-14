@@ -82,6 +82,19 @@ public class BookingService {
         return status == null ? SlotAvailabilityResponse.AVAILABLE : status.value();
     }
 
+    /*
+    *   帶 roomId 去問 room 模組「這間棚在不在」→ 拿回 Room
+        把前端傳的字串 timeSlot（如 "morning"）轉成 Java enum
+        帶 roomId + 日期 + 時段 去 booking 表查「這個時段有沒有人已經佔了」
+        查到 → 依對方是 approved 還是 pending，丟出對應的中文錯誤，流程中止
+        沒查到 → 繼續下一步
+        把 Room、使用者 id（從 token 拿，不採信前端傳的）組成一筆新的 Booking，存進資料庫
+        把存好的資料轉成回應格式，回給前端
+    *
+    *
+    * 如果 booking 直接注入 RoomRepository，假設之後 Room 加了 deleted 欄位，被刪的棚不能再被預約。如果 booking 直接用 RoomRepository，要修就得在 BookingService 補 if (room.isDeleted()) throw ...。而 SlotService、RoomController……每個用到 roomRepository 的地方都要各補一次，漏一個就是漏洞。
+    * 原則上自己的地盤用自己的 repo
+    * */
     @Transactional
     public BookingResponse create(BookingCreateRequest request, AuthPrincipal me) {
         Room room = roomService.requireRoom(request.roomId()); //這裡是跨模組改走service 的用法 (在 booking 使用room)
