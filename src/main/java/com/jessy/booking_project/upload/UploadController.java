@@ -23,13 +23,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UploadController {
 
-    private final ImageStorage imageStorage;
+    private final UploadService uploadService;
 
     /** 建立了一個新資源（檔案），回 201。 */
     @PostMapping(path = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<UploadResponse> uploadImage(@RequestPart("file") MultipartFile file) {
-        String url = imageStorage.store(file);
+        String url = uploadService.upload(file);
         return ApiResponse.ok(new UploadResponse(url));
     }
 }
