@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
- * 上傳流程的規則都在這裡：驗格式 →（之後加：縮圖）→ 交給 storage 存。
+ * 上傳流程的規則都在這裡：驗格式 → 縮圖 → 交給 storage 存。
  *
  * <p>storage 只做 I/O，所以不管本機還是雲端，拿到的都是同一套規則處理過的 bytes。
  */
@@ -19,6 +19,7 @@ import java.util.Arrays;
 public class UploadService {
 
     private final ImageStorage imageStorage;
+    private final ImageResizer imageResizer;
 
     public String upload(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -38,6 +39,9 @@ public class UploadService {
         ImageType type = ImageType.detect(head)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UPLOAD_TYPE_NOT_ALLOWED));
 
-        return imageStorage.store(content, type.extension());
+        // 縮圖後格式可能變（PNG 進、JPEG 出），所以副檔名要用 resized 的，不是 type 的
+        ImageResizer.Result resized = imageResizer.resize(content, type);
+
+        return imageStorage.store(resized.content(), resized.type().extension());
     }
 }
