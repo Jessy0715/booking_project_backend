@@ -1,6 +1,7 @@
 package com.jessy.booking_project.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -11,9 +12,10 @@ import java.nio.file.Paths;
 /**
  * 把本機的上傳資料夾對應到 /uploads/** 網址，瀏覽器才拿得到圖。
  *
- * <p>只有 LocalImageStorage 需要這個；換成雲端儲存後圖片由雲端直接提供，這個 class 就可以刪。
+ * <p>只有 LocalImageStorage 需要這個；storage 設成 cloudinary 時圖片由雲端直接提供，這個設定不會載入。
  */
 @Configuration
+@ConditionalOnProperty(name = "app.upload.storage", havingValue = "local", matchIfMissing = true)
 public class StaticResourceConfig implements WebMvcConfigurer {
 
     @Value("${app.upload.dir}")

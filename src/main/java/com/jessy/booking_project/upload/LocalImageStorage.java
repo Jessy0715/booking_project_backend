@@ -4,6 +4,7 @@ import com.jessy.booking_project.common.BusinessException;
 import com.jessy.booking_project.common.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -21,9 +22,12 @@ import java.util.UUID;
  * </ul>
  *
  * <p>這個 class 不做任何驗證 —— 那是 UploadService 的事。
+ *
+ * <p>只在 app.upload.storage=local（或沒設）時啟用；設成 cloudinary 時這個 bean 不會被建立。
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.upload.storage", havingValue = "local", matchIfMissing = true)
 public class LocalImageStorage implements ImageStorage {
 
     private final Path uploadDir;
