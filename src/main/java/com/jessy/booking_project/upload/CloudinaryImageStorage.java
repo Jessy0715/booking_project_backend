@@ -10,6 +10,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -101,6 +106,33 @@ public class CloudinaryImageStorage implements ImageStorage {
     }
 
     @Override
+    public byte[] read(String url) {
+        if (!owns(url)) {
+            throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .GET()
+                    .build();
+            HttpResponse<byte[]> response = HTTP.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() != 200) {
+                log.warn("下載 Cloudinary 圖片失敗：{} 回 {}", url, response.statusCode());
+                throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
+            }
+            return response.body();
+        } catch (IOException e) {
+            log.warn("下載 Cloudinary 圖片失敗：{}", url, e);
+            throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
+        } catch (InterruptedException e) {
+            // 收到中斷訊號時要把旗標補回去，否則上層看不出這個執行緒被要求停止
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
+        }
+    }
+
+    @Override
     public int deleteAll() {
         try {
             // 依前綴刪整個資料夾。單次上限 1000 筆，Demo 站不會超過；
@@ -152,4 +184,9 @@ public class CloudinaryImageStorage implements ImageStorage {
     }
 
     private static final String UPLOAD_SEGMENT = "/image/upload/";
+
+    /** 下載圖片用。HttpClient 是執行緒安全的，建一個共用就好。 */
+    private static final HttpClient HTTP = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 }

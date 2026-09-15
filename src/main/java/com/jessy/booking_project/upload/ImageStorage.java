@@ -36,6 +36,16 @@ public interface ImageStorage {
     void delete(String url);
 
     /**
+     * 讀回圖片的原始 bytes。
+     *
+     * <p>給「要把圖片內容交給別的服務」的情境用（例如送給 Claude 看圖生成說明）。
+     * 不能直接把網址丟給外部服務 —— 本機的 localhost 網址別人的伺服器連不到。
+     *
+     * <p>讀不到（檔案不存在、網路失敗）丟 BusinessException。
+     */
+    byte[] read(String url);
+
+    /**
      * 清空這個 storage 底下所有圖片。
      *
      * <p><b>危險</b>：只給 Demo 站的每日重置用，一般流程不該呼叫。

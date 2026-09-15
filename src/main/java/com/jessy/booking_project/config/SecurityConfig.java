@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("ADMIN")
                         // 後台：Demo 資料重置（只有 demo profile 才有這支端點）
                         .requestMatchers(HttpMethod.POST, "/api/demo/**").hasRole("ADMIN")
+                        // 後台：AI 生成。每次呼叫都真的花錢，不能開放
+                        .requestMatchers(HttpMethod.POST, "/api/ai/**").hasRole("ADMIN")
                         // 後台：場地的新增／修改／刪除
                         .requestMatchers(HttpMethod.POST, "/api/rooms").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").hasRole("ADMIN")

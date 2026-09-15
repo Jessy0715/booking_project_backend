@@ -79,6 +79,12 @@
 			<artifactId>cloudinary-http5</artifactId>
 			<version>2.3.0</version>
 		</dependency>
+		<!-- Claude API 官方 SDK，用於 AI 生成場地說明 -->
+		<dependency>
+			<groupId>com.anthropic</groupId>
+			<artifactId>anthropic-java</artifactId>
+			<version>2.62.0</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>

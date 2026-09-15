@@ -62,16 +62,23 @@ public class LocalImageStorage implements ImageStorage {
         return url != null && url.startsWith(baseUrl + "/");
     }
 
+    /**
+     * 從網址尾端取檔名。
+     *
+     * <p>用 Paths.get(...).getFileName() 而不是直接字串切 ——
+     * 網址裡就算被塞了 ../ 也只會拿到最後一段，跳不出 uploadDir。
+     */
+    private String filenameOf(String url) {
+        return Paths.get(url.substring(baseUrl.length() + 1)).getFileName().toString();
+    }
+
     @Override
     public void delete(String url) {
         if (!owns(url)) {
             return;
         }
 
-        // 從網址尾端取檔名。用 Paths.get(...).getFileName() 而不是直接字串切，
-        // 這樣網址裡就算被塞了 ../ 也只會拿到最後一段，跳不出 uploadDir。
-        String filename = Paths.get(url.substring(baseUrl.length() + 1)).getFileName().toString();
-        Path target = uploadDir.resolve(filename);
+        Path target = uploadDir.resolve(filenameOf(url));
 
         try {
             boolean deleted = Files.deleteIfExists(target);
@@ -79,6 +86,20 @@ public class LocalImageStorage implements ImageStorage {
         } catch (IOException e) {
             // 刪不掉不該讓使用者的操作失敗，留給每日排程清
             log.warn("刪除圖片失敗：{}", target, e);
+        }
+    }
+
+    @Override
+    public byte[] read(String url) {
+        if (!owns(url)) {
+            throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
+        }
+        Path target = uploadDir.resolve(filenameOf(url));
+        try {
+            return Files.readAllBytes(target);
+        } catch (IOException e) {
+            log.warn("讀取圖片失敗：{}", target, e);
+            throw new BusinessException(ErrorCode.IMAGE_NOT_READABLE);
         }
     }
 

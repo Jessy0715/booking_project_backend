@@ -36,6 +36,8 @@ public enum ErrorCode {
 
     // 500
     UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "圖片儲存失敗"),
+    IMAGE_NOT_READABLE(HttpStatus.INTERNAL_SERVER_ERROR, "讀取圖片失敗"),
+    AI_GENERATION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "AI 生成失敗，請稍後再試"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "伺服器內部錯誤");
 
     private final HttpStatus status;
