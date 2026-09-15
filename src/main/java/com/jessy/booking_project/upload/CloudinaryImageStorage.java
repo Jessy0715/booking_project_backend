@@ -69,4 +69,69 @@ public class CloudinaryImageStorage implements ImageStorage {
             throw new BusinessException(ErrorCode.UPLOAD_FAILED);
         }
     }
+
+    @Override
+    public boolean owns(String url) {
+        // 認自己的 cloud name：別人家的 Cloudinary 網址不歸我管
+        return url != null && url.contains("res.cloudinary.com/" + cloudinary.config.cloudName + "/");
+    }
+
+    @Override
+    public void delete(String url) {
+        if (!owns(url)) {
+            return;
+        }
+
+        String publicId = toPublicId(url);
+        if (publicId == null) {
+            log.warn("無法從網址解析 public_id，略過刪除：{}", url);
+            return;
+        }
+
+        try {
+            Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap(
+                    "resource_type", "image",
+                    // Cloudinary 的 CDN 會快取，不清的話刪掉的圖還會被看到一陣子
+                    "invalidate", true));
+            log.debug("刪除 Cloudinary 圖片 {}：{}", publicId, result.get("result"));
+        } catch (IOException | RuntimeException e) {
+            // 同本機版：刪不掉不該讓使用者的操作失敗
+            log.warn("刪除 Cloudinary 圖片失敗：{}，{}", publicId, e.getMessage());
+        }
+    }
+
+    /**
+     * 從圖片網址反推 public_id —— 刪除 API 認的是 public_id，不是網址。
+     *
+     * <pre>
+     * https://res.cloudinary.com/demo/image/upload/v1699999999/booking/rooms/abc123.jpg
+     *                                            └─ 版本號，要拿掉
+     *                                                        └── public_id ──┘ └─ 副檔名，要拿掉
+     * → booking/rooms/abc123
+     * </pre>
+     */
+    private String toPublicId(String url) {
+        int uploadAt = url.indexOf(UPLOAD_SEGMENT);
+        if (uploadAt < 0) {
+            return null;
+        }
+        String path = url.substring(uploadAt + UPLOAD_SEGMENT.length());
+
+        // 版本號長得像 v1699999999，後面接斜線。不是每個網址都有
+        int slash = path.indexOf('/');
+        if (slash > 1 && path.charAt(0) == 'v' && path.substring(1, slash).chars().allMatch(Character::isDigit)) {
+            path = path.substring(slash + 1);
+        }
+
+        // 去副檔名。只看最後一段，資料夾名稱裡的點不能被誤砍
+        int lastSlash = path.lastIndexOf('/');
+        int lastDot = path.lastIndexOf('.');
+        if (lastDot > lastSlash) {
+            path = path.substring(0, lastDot);
+        }
+
+        return path.isBlank() ? null : path;
+    }
+
+    private static final String UPLOAD_SEGMENT = "/image/upload/";
 }

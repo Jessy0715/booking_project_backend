@@ -5,12 +5,15 @@ import com.jessy.booking_project.common.ErrorCode;
 import com.jessy.booking_project.room.dto.RoomCreateRequest;
 import com.jessy.booking_project.room.dto.RoomResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 /** 場地的業務邏輯。進出都是 DTO，Entity 只活在這個 class 內部。 */
 @Service
@@ -22,6 +25,9 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final RoomMapper roomMapper;
+
+    /** 發「圖片沒人用了」的事件。RoomService 不知道圖片存在哪，也不負責刪。 */
+    private final ApplicationEventPublisher events;
 
     @Transactional(readOnly = true)
     public RoomResponse getById(Long id) {
@@ -63,20 +69,40 @@ public class RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 
+        // 先記住舊圖網址，等下要比對有沒有被換掉
+        String oldImage = room.getRoomImg();
+
         // 不用呼叫 save()：交易內撈出的 Entity 受 Hibernate 管理，
         // 方法結束時它會自己比對有沒有被改過並發 UPDATE（髒檢查）。
         roomMapper.applyRequest(room, request);
+
+        // 圖真的換了才發事件。沒換圖的編輯（只改價格）不能把圖刪掉
+        if (!Objects.equals(oldImage, room.getRoomImg())) {
+            publishOrphaned(oldImage);
+        }
 
         return roomMapper.toResponse(room);
     }
 
     @Transactional
     public void delete(Long id) {
-        // existsById 只查一個 boolean，比 findById 搬回整筆資料輕。
-        if (!roomRepository.existsById(id)) {
-            throw new BusinessException(ErrorCode.ROOM_NOT_FOUND);
+        // 改用 findById：要先拿到 roomImg 才知道等下該刪哪張圖
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        String image = room.getRoomImg();
+        roomRepository.delete(room);
+        publishOrphaned(image);
+    }
+
+    /**
+     * 宣告某張圖沒人用了。事件的接收端設定成「交易 commit 之後」才真的刪檔，
+     * 所以這裡即使之後交易回滾，檔案也不會被誤刪。
+     */
+    private void publishOrphaned(String imageUrl) {
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            events.publishEvent(new ImageOrphanedEvent(imageUrl));
         }
-        roomRepository.deleteById(id);
     }
 
 

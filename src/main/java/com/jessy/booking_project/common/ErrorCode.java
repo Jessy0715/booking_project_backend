@@ -21,8 +21,9 @@ public enum ErrorCode {
     UPLOAD_EMPTY(HttpStatus.BAD_REQUEST, "請選擇要上傳的圖片"),
     UPLOAD_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "只支援 jpg / png / webp 格式的圖片"),
 
-    // 413
+    // 413 / 415
     UPLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "圖片大小不能超過 5 MB"),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "請求格式不支援，上傳檔案請用 multipart/form-data"),
 
     // 401 / 403
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "帳號或密碼錯誤"),

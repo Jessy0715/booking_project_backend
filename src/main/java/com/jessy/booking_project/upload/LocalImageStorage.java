@@ -56,4 +56,29 @@ public class LocalImageStorage implements ImageStorage {
 
         return baseUrl + "/" + filename;
     }
+
+    @Override
+    public boolean owns(String url) {
+        return url != null && url.startsWith(baseUrl + "/");
+    }
+
+    @Override
+    public void delete(String url) {
+        if (!owns(url)) {
+            return;
+        }
+
+        // 從網址尾端取檔名。用 Paths.get(...).getFileName() 而不是直接字串切，
+        // 這樣網址裡就算被塞了 ../ 也只會拿到最後一段，跳不出 uploadDir。
+        String filename = Paths.get(url.substring(baseUrl.length() + 1)).getFileName().toString();
+        Path target = uploadDir.resolve(filename);
+
+        try {
+            boolean deleted = Files.deleteIfExists(target);
+            log.debug("刪除圖片 {}：{}", target, deleted ? "成功" : "檔案不存在");
+        } catch (IOException e) {
+            // 刪不掉不該讓使用者的操作失敗，留給每日排程清
+            log.warn("刪除圖片失敗：{}", target, e);
+        }
+    }
 }

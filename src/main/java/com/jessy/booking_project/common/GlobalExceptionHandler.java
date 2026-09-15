@@ -9,6 +9,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -68,6 +69,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge() {
         return fail(ErrorCode.UPLOAD_TOO_LARGE);
+    }
+
+    /** Content-Type 不是端點支援的（例如上傳端點收到 application/json）→ 415。 */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMediaType(HttpMediaTypeNotSupportedException e) {
+        log.debug("不支援的 Content-Type：{}", e.getContentType());
+        return fail(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
     }
 
     /** multipart 請求裡沒有 file 這個欄位 → 400。 */
