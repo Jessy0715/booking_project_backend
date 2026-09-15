@@ -5,6 +5,7 @@ import com.jessy.booking_project.common.ErrorCode;
 import com.jessy.booking_project.room.dto.RoomCreateRequest;
 import com.jessy.booking_project.room.dto.RoomResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 
 /** 場地的業務邏輯。進出都是 DTO，Entity 只活在這個 class 內部。 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RoomService {
@@ -120,6 +122,9 @@ public class RoomService {
         // deleteAllInBatch 發一句 DELETE ... WHERE id IN (...)，
         // 不是每筆各發一句，10 筆就少 9 次來回
         roomRepository.deleteAllInBatch(rooms);
+
+        // 破壞性操作：一次刪多筆要留紀錄，事後才能回答「這些場地是什麼時候不見的」
+        log.info("批次刪除場地：ids={}", distinctIds);
 
         images.forEach(this::publishOrphaned);
         return rooms.size();

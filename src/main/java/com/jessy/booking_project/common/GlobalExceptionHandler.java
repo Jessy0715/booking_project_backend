@@ -97,6 +97,8 @@ public class GlobalExceptionHandler {
     /** @PreAuthorize 之類在方法層丟的 403。Filter 層的 403 走 RestAccessDeniedHandler。 */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e) {
+        // WARN：單次可能只是使用者點錯，但有人反覆戳 admin 端點就是探測行為
+        log.warn("權限不足被拒：{}", e.getMessage());
         return ResponseEntity.status(403).body(ApiResponse.fail("權限不足"));
     }
 

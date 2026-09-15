@@ -84,9 +84,24 @@ public class AiDescriptionService {
                                 .build())))
                 .build();
 
+        long startedAt = System.currentTimeMillis();
         try {
             Message response = claude.messages().create(params);
-            return extractText(response);
+            String description = extractText(response);
+
+            // 這是會花錢的操作：記下 token 用量才能對帳、才能發現異常暴增。
+            // 不記生成出來的文字本身 —— 那是使用者內容，log 不是存放它的地方
+            log.info("AI 生成場地說明：model={}, inputTokens={}, outputTokens={}, 耗時={}ms, 長度={}字",
+                    model,
+                    response.usage().inputTokens(),
+                    response.usage().outputTokens(),
+                    System.currentTimeMillis() - startedAt,
+                    description.length());
+
+            return description;
+        } catch (BusinessException e) {
+            // extractText 丟的，已經記過 log，直接往上拋不要重複記
+            throw e;
         } catch (RuntimeException e) {
             // 對外只回「請稍後再試」，細節寫進 log —— 不把第三方的錯誤訊息透給前端
             log.error("Claude 生成場地說明失敗", e);

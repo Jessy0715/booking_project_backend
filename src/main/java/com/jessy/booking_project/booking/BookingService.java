@@ -11,6 +11,7 @@ import com.jessy.booking_project.room.Room;
 import com.jessy.booking_project.room.RoomService;
 import com.jessy.booking_project.security.AuthPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -112,12 +114,21 @@ public class BookingService {
                 });
 
         Booking saved = bookingRepository.save(bookingMapper.toEntity(request, room, me.uid()));
+
+        // 業務里程碑：之後查「這個時段到底是誰約走的」靠這一行
+        log.info("預約建立：id={}, roomId={}, date={}, slot={}, uid={}",
+                saved.getId(), room.getId(), request.date(), slot, me.uid());
+
         return bookingMapper.toResponse(saved);
     }
 
-    /** 審核。Controller 已限 admin，這裡只管狀態機。 */
+    /**
+     * 審核。Controller 已限 admin，這裡只管狀態機。
+     *
+     * <p>me 不參與任何判斷，只用來寫稽核 log —— 「這筆是誰審的」是事後查得到的唯一來源。
+     */
     @Transactional
-    public BookingResponse review(Long id, BookingReviewRequest request) {
+    public BookingResponse review(Long id, BookingReviewRequest request, AuthPrincipal me) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BOOKING_NOT_FOUND));
 
@@ -127,7 +138,13 @@ public class BookingService {
             throw new BusinessException(ErrorCode.BOOKING_ALREADY_REVIEWED);
         }
 
+        BookingStatus from = booking.getStatus();
         booking.setStatus(BookingStatus.fromValue(request.status()));
+
+        // 狀態轉換 + 誰做的 = 稽核紀錄。「這筆為什麼被退回、誰退的」要能回答
+        log.info("預約審核：id={}, {} → {}, admin={}(uid={})",
+                booking.getId(), from, booking.getStatus(), me.account(), me.uid());
+
         return bookingMapper.toResponse(booking);
     }
 
@@ -151,6 +168,9 @@ public class BookingService {
             throw new BusinessException(ErrorCode.BOOKING_NOT_PENDING);
         }
         bookingRepository.delete(booking);
+
+        // 記 isAdmin：admin 代為取消別人的預約是敏感操作，要能查
+        log.info("預約取消：id={}, 操作者uid={}, isAdmin={}", booking.getId(), me.uid(), isAdmin);
     }
 
     /** 清空所有預約（含已軟刪除的）。只給 Demo 站每日重置用。 */

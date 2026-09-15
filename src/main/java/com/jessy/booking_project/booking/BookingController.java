@@ -51,11 +51,17 @@ public class BookingController {
         return ApiResponse.ok(bookingService.create(request, me));
     }
 
-    /** SecurityConfig 已限 PATCH /api/bookings/** 為 ADMIN。 */
+    /**
+     * SecurityConfig 已限 PATCH /api/bookings/** 為 ADMIN。
+     *
+     * <p>me 不是用來判斷權限的（那已經在 SecurityConfig 做掉了），
+     * 是為了稽核：要能回答「這筆是誰審的」。
+     */
     @PatchMapping("/{id}")
     public ApiResponse<BookingResponse> reviewBooking(@PathVariable Long id,
-                                                      @Valid @RequestBody BookingReviewRequest request) {
-        return ApiResponse.ok(bookingService.review(id, request));
+                                                      @Valid @RequestBody BookingReviewRequest request,
+                                                      @AuthenticationPrincipal AuthPrincipal me) {
+        return ApiResponse.ok(bookingService.review(id, request, me));
     }
 
     @DeleteMapping("/{id}")

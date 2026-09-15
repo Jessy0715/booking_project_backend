@@ -27,16 +27,25 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
+        String account = request.account().trim();
+
         // 帳號不存在與密碼錯誤丟同一個例外，避免攻擊者從訊息差異篩出存在的帳號
-        User user = userRepository.findByAccount(request.account().trim())
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+        User user = userRepository.findByAccount(account)
+                .orElseThrow(() -> {
+                    // WARN 不是 ERROR：單次失敗很正常（打錯字），但連續失敗是暴力破解的訊號。
+                    // 只記帳號，絕對不記密碼
+                    log.warn("登入失敗（帳號不存在）：account={}", account);
+                    return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+                });
 
         // 明文 vs 雜湊（用 matches），密碼對就 true，不對丟例外
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            log.warn("登入失敗（密碼錯誤）：account={}, uid={}", account, user.getId());
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         String token = jwtTokenProvider.generateToken(user);
+        log.info("登入成功：account={}, uid={}, role={}", account, user.getId(), user.getRole());
         return userMapper.toAuthResponse(user, token);
     }
 
