@@ -34,4 +34,14 @@ public interface ImageStorage {
      * 刪圖失敗不該讓「刪場地」這個使用者動作失敗，剩下的孤兒檔由每日排程清。
      */
     void delete(String url);
+
+    /**
+     * 清空這個 storage 底下所有圖片。
+     *
+     * <p><b>危險</b>：只給 Demo 站的每日重置用，一般流程不該呼叫。
+     * 本機版清 uploads/ 資料夾；Cloudinary 版清設定的 folder。
+     *
+     * @return 刪掉幾個檔案
+     */
+    int deleteAll();
 }

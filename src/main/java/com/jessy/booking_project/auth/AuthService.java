@@ -62,4 +62,16 @@ public class AuthService {
     public void logout(AuthPrincipal me) {
         log.info("使用者登出：account={}, uid={}", me.account(), me.uid());
     }
+
+    /**
+     * 刪掉所有一般使用者，保留 admin。只給 Demo 站每日重置用。
+     *
+     * <p>保留 admin 是因為 register 只能建 user 角色，刪掉就沒人能進後台了。
+     *
+     * @return 刪了幾個帳號
+     */
+    @Transactional
+    public int deleteNonAdminUsers() {
+        return userRepository.deleteByRoleNot(User.ROLE_ADMIN);
+    }
 }

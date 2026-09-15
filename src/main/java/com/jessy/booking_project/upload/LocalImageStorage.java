@@ -81,4 +81,24 @@ public class LocalImageStorage implements ImageStorage {
             log.warn("刪除圖片失敗：{}", target, e);
         }
     }
+
+    @Override
+    public int deleteAll() {
+        int count = 0;
+        // 只刪這個資料夾第一層的檔案，不遞迴、不刪資料夾本身
+        try (var files = Files.list(uploadDir)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                try {
+                    Files.delete(file);
+                    count++;
+                } catch (IOException e) {
+                    log.warn("刪除失敗：{}", file, e);
+                }
+            }
+        } catch (IOException e) {
+            log.warn("讀取上傳資料夾失敗：{}", uploadDir, e);
+        }
+        log.info("清空本機圖片：{} 個檔案", count);
+        return count;
+    }
 }

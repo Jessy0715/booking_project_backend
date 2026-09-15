@@ -152,4 +152,10 @@ public class BookingService {
         }
         bookingRepository.delete(booking);
     }
+
+    /** 清空所有預約（含已軟刪除的）。只給 Demo 站每日重置用。 */
+    @Transactional
+    public int deleteAllForDemoReset() {
+        return bookingRepository.hardDeleteAll();
+    }
 }

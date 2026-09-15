@@ -100,6 +100,24 @@ public class CloudinaryImageStorage implements ImageStorage {
         }
     }
 
+    @Override
+    public int deleteAll() {
+        try {
+            // 依前綴刪整個資料夾。單次上限 1000 筆，Demo 站不會超過；
+            // 真要清大量檔案得用 Admin API 分批，那是另一個層級的需求
+            Map<?, ?> result = cloudinary.api().deleteResourcesByPrefix(folder + "/", ObjectUtils.asMap(
+                    "resource_type", "image",
+                    "invalidate", true));
+            Object deleted = result.get("deleted");
+            int count = deleted instanceof Map<?, ?> map ? map.size() : 0;
+            log.info("清空 Cloudinary 資料夾 {}：{} 個檔案", folder, count);
+            return count;
+        } catch (Exception e) {
+            log.warn("清空 Cloudinary 資料夾失敗：{}", e.getMessage());
+            return 0;
+        }
+    }
+
     /**
      * 從圖片網址反推 public_id —— 刪除 API 認的是 public_id，不是網址。
      *

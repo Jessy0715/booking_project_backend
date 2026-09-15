@@ -96,6 +96,19 @@ public class RoomService {
     }
 
     /**
+     * 清空所有場地並重建種子資料。只給 Demo 站每日重置用。
+     *
+     * <p>不發 ImageOrphanedEvent：重置會把整個圖片儲存空間清空，不需要一張一張刪。
+     *
+     * @return 重建了幾間場地
+     */
+    @Transactional
+    public int resetToSeedData() {
+        roomRepository.deleteAllInBatch();
+        return roomRepository.saveAll(RoomSeedData.rooms()).size();
+    }
+
+    /**
      * 宣告某張圖沒人用了。事件的接收端設定成「交易 commit 之後」才真的刪檔，
      * 所以這裡即使之後交易回滾，檔案也不會被誤刪。
      */

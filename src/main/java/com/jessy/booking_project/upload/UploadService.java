@@ -44,4 +44,9 @@ public class UploadService {
 
         return imageStorage.store(resized.content(), resized.type().extension());
     }
+
+    /** 清空所有上傳的圖片。只給 Demo 站每日重置用。 */
+    public int deleteAllImages() {
+        return imageStorage.deleteAll();
+    }
 }
