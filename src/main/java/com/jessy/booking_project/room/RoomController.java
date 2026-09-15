@@ -72,6 +72,20 @@ public class RoomController {
         return ApiResponse.okMessage("場地已刪除");
     }
 
+    /**
+     * 批次刪除：DELETE /api/rooms?ids=1,2,3
+     *
+     * <p>全有全無 —— 任何一個 id 不存在就整批不刪，回 404「場地不存在」。
+     *
+     * <p>路徑跟單筆的 /{id} 不衝突：這支沒有路徑變數，Spring 靠這點分辨。
+     * ids 是必填，沒帶會走 MissingServletRequestParameterException → 400「ids 為必填」。
+     */
+    @DeleteMapping
+    public ApiResponse<Void> deleteRooms(@RequestParam List<Long> ids) {
+        int deleted = roomService.deleteAll(ids);
+        return ApiResponse.okMessage("已刪除 " + deleted + " 筆場地");
+    }
+
     /** pageSize 用 result.getSize()：那是 Service 夾過之後「實際生效」的值，不是使用者亂傳的原值。 */
     private PaginationResponse toPagination(Page<RoomResponse> result, int page) {
         return new PaginationResponse(

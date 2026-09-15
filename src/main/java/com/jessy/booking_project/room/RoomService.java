@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 
 /** 場地的業務邏輯。進出都是 DTO，Entity 只活在這個 class 內部。 */
@@ -93,6 +94,35 @@ public class RoomService {
         String image = room.getRoomImg();
         roomRepository.delete(room);
         publishOrphaned(image);
+    }
+
+    /**
+     * 批次刪除。全有全無：只要有一個 id 找不到，整批都不刪。
+     *
+     * <p>@Transactional 在這裡是真的有用 —— 中途丟例外時，前面已經刪掉的會一起回滾。
+     *
+     * @return 刪掉幾筆
+     */
+    @Transactional
+    public int deleteAll(List<Long> ids) {
+        // 前端可能送出重複的 id（例如清單選了兩次），先去重，數量才會正確
+        List<Long> distinctIds = ids.stream().distinct().toList();
+
+        List<Room> rooms = roomRepository.findAllById(distinctIds);
+
+        // 撈到的筆數少於要求的 → 一定有 id 不存在
+        if (rooms.size() != distinctIds.size()) {
+            throw new BusinessException(ErrorCode.ROOM_NOT_FOUND);
+        }
+
+        List<String> images = rooms.stream().map(Room::getRoomImg).toList();
+
+        // deleteAllInBatch 發一句 DELETE ... WHERE id IN (...)，
+        // 不是每筆各發一句，10 筆就少 9 次來回
+        roomRepository.deleteAllInBatch(rooms);
+
+        images.forEach(this::publishOrphaned);
+        return rooms.size();
     }
 
     /**
