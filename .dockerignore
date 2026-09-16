@@ -1,0 +1,18 @@
+# 建置產物，容器內會重新建
+target/
+
+# 版控與 IDE
+.git/
+.idea/
+.claude/
+
+# 機密，絕對不能進映像檔
+.env
+.env.*
+!.env.example
+
+# 本機上傳的圖片與文件，執行不需要
+uploads/
+docs/
+*.md
+HELP.md

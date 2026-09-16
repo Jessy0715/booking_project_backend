@@ -28,6 +28,7 @@ public enum ErrorCode {
     // 401 / 403
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "帳號或密碼錯誤"),
     BOOKING_NOT_OWNER(HttpStatus.FORBIDDEN, "不能取消別人的預約"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "權限不足"),
 
     // 409
     DUPLICATE_ACCOUNT(HttpStatus.CONFLICT, "此帳號已被使用"),

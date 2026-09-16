@@ -55,8 +55,9 @@ public class SecurityConfig {
 
                         // 後台：上傳圖片（目前只有場地表單用得到）
                         .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasRole("ADMIN")
-                        // 後台：Demo 資料重置（只有 demo profile 才有這支端點）
-                        .requestMatchers(HttpMethod.POST, "/api/demo/**").hasRole("ADMIN")
+                        // Demo 資料重置：放行，但 Controller 自己驗 X-Reset-Key。
+                        // 不走 JWT 是因為外部 cron 服務沒辦法每小時換 token
+                        .requestMatchers(HttpMethod.POST, "/api/demo/reset").permitAll()
                         // 後台：AI 生成。每次呼叫都真的花錢，不能開放
                         .requestMatchers(HttpMethod.POST, "/api/ai/**").hasRole("ADMIN")
                         // 後台：場地的新增／修改／刪除
