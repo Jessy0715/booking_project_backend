@@ -1,7 +1,9 @@
 package com.jessy.booking_project.demo;
 
 import com.jessy.booking_project.auth.AuthService;
+import com.jessy.booking_project.auth.User;
 import com.jessy.booking_project.booking.BookingService;
+import com.jessy.booking_project.config.DataInitializer;
 import com.jessy.booking_project.room.RoomService;
 import com.jessy.booking_project.upload.UploadService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,9 @@ public class DemoResetService {
 
         int bookings = bookingService.deleteAllForDemoReset();
         int users = authService.deleteNonAdminUsers();
+        // 刪完一般帳號後把公開的 demo 帳號補回來，訪客不用先註冊就能試「我的預約」
+        authService.ensureUser(
+                DataInitializer.DEMO_USER_ACCOUNT, DataInitializer.DEMO_USER_PASSWORD, User.ROLE_USER);
         int rooms = roomService.resetToSeedData();
         int images = uploadService.deleteAllImages();
 

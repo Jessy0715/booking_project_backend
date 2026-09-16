@@ -73,6 +73,28 @@ public class AuthService {
     }
 
     /**
+     * 確保某個帳號存在，不存在就建。給啟動時的種子資料與 Demo 重置用。
+     *
+     * <p>放在這裡而不是 DataInitializer：密碼雜湊、角色常數都是 auth 模組的事，
+     * 其他模組（config、demo）只該說「我要一個叫 X 的帳號」，不該自己碰 UserRepository。
+     *
+     * @return true = 這次新建的；false = 本來就有
+     */
+    @Transactional
+    public boolean ensureUser(String account, String rawPassword, String role) {
+        if (userRepository.existsByAccount(account)) {
+            return false;
+        }
+        userRepository.save(User.builder()
+                .account(account)
+                .password(passwordEncoder.encode(rawPassword))
+                .role(role)
+                .build());
+        log.info("種子帳號已建立：account={}, role={}", account, role);
+        return true;
+    }
+
+    /**
      * 刪掉所有一般使用者，保留 admin。只給 Demo 站每日重置用。
      *
      * <p>保留 admin 是因為 register 只能建 user 角色，刪掉就沒人能進後台了。
