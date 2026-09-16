@@ -6,6 +6,7 @@ import com.jessy.booking_project.common.ApiResponse;
 import com.jessy.booking_project.common.PaginationResponse;
 import com.jessy.booking_project.config.OpenApiConfig;
 import com.jessy.booking_project.room.dto.RoomCreateRequest;
+import com.jessy.booking_project.room.dto.RoomOptionResponse;
 import com.jessy.booking_project.room.dto.RoomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -92,6 +93,37 @@ public class RoomController {
 
         Page<RoomResponse> result = roomService.search(keyword, page, pageSize);
         return ApiResponse.ok(result.getContent(), toPagination(result, page));
+    }
+
+    /**
+     * 放在 /{id} 前面：Spring 比對路徑時，字面的 "/options" 比 "/{id}" 精確，
+     * 所以其實順序不影響結果，但放前面讓讀的人一眼看出「這不是 id」。
+     */
+    @GetMapping("/options")
+    @Operation(
+            summary = "查詢全部場地的下拉選項",
+            description = """
+                    不用登入。回全部場地，只有 `id` 與 `title`，不分頁。
+
+                    給表單的下拉選單用。要完整資料請用 `GET /api/rooms`。
+                    """)
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "查詢成功。沒有場地時回空陣列。",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "success": true,
+                                      "data": [
+                                        { "id": 1, "title": "Studio A — 日光大空間" },
+                                        { "id": 2, "title": "Studio B — 純白無縫棚" }
+                                      ]
+                                    }
+                                    """)))
+    })
+    public ApiResponse<List<RoomOptionResponse>> getRoomOptions() {
+        return ApiResponse.ok(roomService.listOptions());
     }
 
     @GetMapping("/{id}")

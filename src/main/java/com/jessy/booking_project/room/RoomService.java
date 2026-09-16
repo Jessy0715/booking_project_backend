@@ -3,6 +3,7 @@ package com.jessy.booking_project.room;
 import com.jessy.booking_project.common.BusinessException;
 import com.jessy.booking_project.common.ErrorCode;
 import com.jessy.booking_project.room.dto.RoomCreateRequest;
+import com.jessy.booking_project.room.dto.RoomOptionResponse;
 import com.jessy.booking_project.room.dto.RoomResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,17 @@ public class RoomService {
 
         // map 只換掉每一筆的型別，頁碼與總筆數原封不動帶著走
         return rooms.map(roomMapper::toResponse);
+    }
+
+    /**
+     * 下拉選單用的全部場地。不分頁、只有 id + title。
+     *
+     * <p>不經過 Mapper：Repository 直接回 Projection record，沒有 Entity → DTO 的轉換步驟。
+     * 這是 Projection 的好處之一 —— 資料庫吐出來的形狀就是要給前端的形狀。
+     */
+    @Transactional(readOnly = true)
+    public List<RoomOptionResponse> listOptions() {
+        return roomRepository.findAllBy(Sort.by("id"));
     }
 
     /** 建立場地。@Transactional 不加 readOnly —— 這裡要寫入。 */
