@@ -21,9 +21,9 @@ import java.util.List;
 /**
  * 依場地名稱與照片，用 Claude 生成一段場地說明。
  *
- * <p>照片不是把網址丟給 Claude，而是後端先讀出 bytes 轉 base64 ——
- * 本機開發的網址是 localhost，Anthropic 的伺服器連不到。
- * 改成 Cloudinary 後雖然網址公開可讀，但用同一套做法比較單純。
+ * <p>照片怎麼交給 Claude 依來源而定，見 {@link #imageSourceOf(String)}：
+ * 我們自己存的讀成 base64（本機模式的網址是 localhost，Anthropic 連不到），
+ * 外部網址則直接交給 Anthropic 去抓。
  */
 @Slf4j
 @Service
@@ -61,11 +61,7 @@ public class AiDescriptionService {
     }
 
     public String generate(RoomDescriptionRequest request) {
-        // 防呆的第一層在 DTO 的 @NotBlank（少一樣直接 400，不會走到這裡）；
-        // 第二層是這裡：圖片讀不出來就別花錢呼叫 API
-        byte[] image = imageStorage.read(request.roomImg());
-        Base64ImageSource.MediaType mediaType = mediaTypeOf(request.roomImg());
-
+        // 防呆的第一層在 DTO 的 @NotBlank（少一樣直接 400，不會走到這裡）
         MessageCreateParams params = MessageCreateParams.builder()
                 .model(model)
                 // 60 字的中文大約 100 個 token，給 300 是留餘裕，不是預期會用到
@@ -73,12 +69,8 @@ public class AiDescriptionService {
                 .system(SYSTEM_PROMPT)
                 .addUserMessageOfBlockParams(List.of(
                         // 圖片放文字前面：官方建議的順序，模型對圖的理解較好
-                        ContentBlockParam.ofImage(ImageBlockParam.builder()
-                                .source(Base64ImageSource.builder()
-                                        .data(Base64.getEncoder().encodeToString(image))
-                                        .mediaType(mediaType)
-                                        .build())
-                                .build()),
+                        ContentBlockParam.ofImage(
+                                ImageBlockParam.builder().source(imageSourceOf(request.roomImg())).build()),
                         ContentBlockParam.ofText(TextBlockParam.builder()
                                 .text("場地名稱：" + request.title())
                                 .build())))
@@ -125,10 +117,39 @@ public class AiDescriptionService {
     }
 
     /**
+     * 決定怎麼把圖片交給 Claude，依網址是不是我們存的分兩條路。
+     *
+     * <table>
+     *   <tr><th>網址來源</th><th>做法</th><th>誰去抓圖</th></tr>
+     *   <tr><td>我們存的（Cloudinary / 本機）</td><td>讀 bytes 轉 base64</td><td>我們的後端</td></tr>
+     *   <tr><td>外部的（種子資料的 Unsplash 等）</td><td>直接給網址</td><td>Anthropic 的伺服器</td></tr>
+     * </table>
+     *
+     * <p><b>為什麼外部網址不自己抓</b>：那會變成 SSRF 漏洞 —— 前端若送
+     * {@code http://localhost:8088/...} 或雲端的 metadata 端點，後端就成了攻擊者的跳板。
+     * 交給 Anthropic 去抓，我們一行都不碰那個網址，攻擊者填內部位址也沒用（對方連不到）。
+     *
+     * <p>附帶好處：外部網址常常沒有副檔名（Unsplash 就是），交給 Anthropic 就不用自己猜
+     * media type，它看 HTTP 的 Content-Type。
+     */
+    private ImageBlockParam.Source imageSourceOf(String url) {
+        if (!imageStorage.owns(url)) {
+            return ImageBlockParam.Source.ofUrl(url);
+        }
+
+        // 自己存的才讀 bytes。本機模式的網址是 localhost，Anthropic 連不到，只能走 base64
+        byte[] image = imageStorage.read(url);
+        return ImageBlockParam.Source.ofBase64(Base64ImageSource.builder()
+                .data(Base64.getEncoder().encodeToString(image))
+                .mediaType(mediaTypeOf(url))
+                .build());
+    }
+
+    /**
      * 從副檔名判斷 media type。
      *
-     * <p>這裡可以信任副檔名：這些網址都是我們自己的上傳流程產生的，
-     * 而那個流程已經驗過 magic bytes 了（見 UploadService）。
+     * <p>只有「我們自己存的網址」會走到這裡，而那些檔案在上傳時已經驗過 magic bytes
+     * （見 UploadService），所以這裡信任副檔名是安全的。
      */
     private Base64ImageSource.MediaType mediaTypeOf(String url) {
         String lower = url.toLowerCase();
