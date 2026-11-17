@@ -32,6 +32,8 @@ jobs:
       DB_URL: jdbc:postgresql://localhost:5432/booking
       DB_USERNAME: booking
       DB_PASSWORD: booking
+      # ClaudeConfig 啟動時要求 key 不可為空；測試不會真的呼叫 AI，放假值即可，真 key 不進 CI
+      ANTHROPIC_API_KEY: ci-dummy-key
 
     steps:
       - uses: actions/checkout@v4
