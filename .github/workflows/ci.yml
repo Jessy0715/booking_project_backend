@@ -1,0 +1,48 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, "stage/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # BookingProjectApplicationTests 是 @SpringBootTest，會真的連資料庫，
+    # 所以 CI 也要起一個 PostgreSQL（跟本機 docker compose 同一組帳密）
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: booking
+          POSTGRES_USER: booking
+          POSTGRES_PASSWORD: booking
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booking"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # application.properties 預設連 localhost:5433（本機 Docker 對外埠），CI 改連 5432
+      DB_URL: jdbc:postgresql://localhost:5432/booking
+      DB_USERNAME: booking
+      DB_PASSWORD: booking
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # mvnw 在 git 裡沒有執行權限（Windows 開發），Linux runner 要補上
+      - run: chmod +x mvnw
+
+      - run: ./mvnw -B test
